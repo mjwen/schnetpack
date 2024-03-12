@@ -203,7 +203,7 @@ class Process_xyz_remsing:
             self_interaction=False,
             periodic_self_interaction=True,
         )
-        wc_neigh=num_neigh[: len(oxy_positions)]
+        wc_neigh = num_neigh[: len(oxy_positions)]
         lst_wan = []
         sum1 = 0
         i: int
@@ -220,7 +220,6 @@ class Process_xyz_remsing:
         lst_wan = np.array(lst_wan)
 
         return lst_wan, oxy_positions, wc_neigh
-
 
     def write_xyz(self, file_out="outfile_ret.xyz", format_out="xyz"):
         import ase.io as asi
@@ -251,7 +250,7 @@ def read_data(path):
     pos_list = []
     wc_list = []
     na_list = []
-    neigh_mismath_list=[]
+    neigh_mismath_list = []
 
     lst_dir = [x for x in os.listdir(path) if "." not in x]
     for dir in lst_dir:
@@ -262,7 +261,7 @@ def read_data(path):
             pxr = Process_xyz_remsing(file_str=file_str, file_inp=file_inp)
             # struct_obj, cell = pxr.get_structure()
             lst_wan, oxy_positions, wc_neigh = pxr.wannier_centers()
-            if list(np.unique(wc_neigh))==[4]:
+            if list(np.unique(wc_neigh)) == [4]:
                 z_mol, pos_mol = pxr.atom_number_positions()
 
                 z_list.append(z_mol)

@@ -11,21 +11,14 @@ This will generate a directory named `job_dir` with the submitting script and ot
 files.
 """
 
-
 import os
 import shutil
 import sys
 from pathlib import Path
 from typing import Any
 
-from minilaunch import (
-    LaunchDB,
-    Slurm,
-    ValueIter,
-    iter_dict_keys,
-    write_slurm_script,
-    write_job_config_script,
-)
+from minilaunch import (LaunchDB, Slurm, ValueIter, iter_dict_keys,
+                        write_job_config_script, write_slurm_script)
 from minilaunch.utils import copy_files
 
 
@@ -116,7 +109,7 @@ def submit_a_job(
 
 
 def get_update_config(
-    n_atom_basis = 30,
+    n_atom_basis=30,
     r_cut=5.0,
     n_interactions=3,
     n_rbf=20,
@@ -126,8 +119,13 @@ def get_update_config(
 
     all_update_config = {
         #
-        #datamodule
-	"datamodule":{"cutoff":r_cut,"n_atom_basis":n_atom_basis,"n_interactions":n_interactions,"n_rbf":n_rbf},
+        # datamodule
+        "datamodule": {
+            "cutoff": r_cut,
+            "n_atom_basis": n_atom_basis,
+            "n_interactions": n_interactions,
+            "n_rbf": n_rbf,
+        },
         #
         # trainer
         #
@@ -218,13 +216,12 @@ if __name__ == "__main__":
 
     launch_db = LaunchDB(db_path=f"./{JOB_DIR}/minilaunch_db.yaml", new_db=True)
 
-
     # for trainset_size in [10, 100, 1000, 2500]:
     # for trainset_size in [10]:
-    for r_cut in [4.0,5.0,6.0]:
-        for n_interactions in [5,6,7,8,9,10]:
-            for n_atom_basis in [16,24,32,40,48]:
-                for n_rbf in [16,24,32,40,48]:
+    for r_cut in [4.0, 5.0, 6.0]:
+        for n_interactions in [5, 6, 7, 8, 9, 10]:
+            for n_atom_basis in [16, 24, 32, 40, 48]:
+                for n_rbf in [16, 24, 32, 40, 48]:
                     # generate grid search of values marked by `ValueIter`
                     all_update_config = get_update_config(
                         n_atom_basis=n_atom_basis,
@@ -232,13 +229,17 @@ if __name__ == "__main__":
                         r_cut=r_cut,
                         n_interactions=n_interactions,
                         n_rbf=n_rbf,
-                        wandb_project_name=PROJECT_NAME + f"_rcut_{r_cut}_nlay_{n_interactions}_atm_bas_{n_atom_basis}_n_gaus_{n_rbf}",)
-                    config=all_update_config[-1]
-                    submit_a_job(jobname=f"rcut_{r_cut}_nlay_{n_interactions}_atm_bas_{n_atom_basis}_n_gaus_{n_rbf}",
+                        wandb_project_name=PROJECT_NAME
+                        + f"_rcut_{r_cut}_nlay_{n_interactions}_atm_bas_{n_atom_basis}_n_gaus_{n_rbf}",
+                    )
+                    config = all_update_config[-1]
+                    submit_a_job(
+                        jobname=f"rcut_{r_cut}_nlay_{n_interactions}_atm_bas_{n_atom_basis}_n_gaus_{n_rbf}",
                         submit_dir=f"{JOB_DIR}/rcut_{r_cut}_nlay_{n_interactions}_atm_bas_{n_atom_basis}_n_gaus_{n_rbf}",
                         python_script_name="train_wannier.py",
                         default_config=BASE_CONFIG,
                         update_config=config,
                         files_to_copy=["train_wannier.py"],
                         launch_db=launch_db,
-                        default_config_keys_to_pop=None,)
+                        default_config_keys_to_pop=None,
+                    )

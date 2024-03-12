@@ -11,21 +11,14 @@ This will generate a directory named `job_dir` with the submitting script and ot
 files.
 """
 
-
 import os
 import shutil
 import sys
 from pathlib import Path
 from typing import Any
 
-from minilaunch import (
-    LaunchDB,
-    Slurm,
-    ValueIter,
-    iter_dict_keys,
-    write_slurm_script,
-    write_job_config_script,
-)
+from minilaunch import (LaunchDB, Slurm, ValueIter, iter_dict_keys,
+                        write_job_config_script, write_slurm_script)
 from minilaunch.utils import copy_files
 
 
