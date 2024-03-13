@@ -17,8 +17,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from minilaunch import (LaunchDB, Slurm, ValueIter, iter_dict_keys,
-                        write_job_config_script, write_slurm_script)
+from minilaunch import (
+    LaunchDB,
+    Slurm,
+    ValueIter,
+    iter_dict_keys,
+    write_job_config_script,
+    write_slurm_script,
+)
 from minilaunch.utils import copy_files
 
 

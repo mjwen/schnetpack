@@ -17,8 +17,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from minilaunch import (LaunchDB, Slurm, ValueIter, iter_dict_keys,
-                        write_job_config_script, write_slurm_script)
+from minilaunch import (
+    LaunchDB,
+    Slurm,
+    ValueIter,
+    iter_dict_keys,
+    write_job_config_script,
+    write_slurm_script,
+)
 from minilaunch.utils import copy_files
 
 
@@ -122,6 +128,9 @@ def get_update_config(
         # datamodule
         "datamodule": {
             "cutoff": r_cut,
+        },
+        # model
+        "model": {
             "n_atom_basis": n_atom_basis,
             "n_interactions": n_interactions,
             "n_rbf": n_rbf,
@@ -218,10 +227,16 @@ if __name__ == "__main__":
 
     # for trainset_size in [10, 100, 1000, 2500]:
     # for trainset_size in [10]:
+    """
     for r_cut in [4.0, 5.0, 6.0]:
         for n_interactions in [5, 6, 7, 8, 9, 10]:
             for n_atom_basis in [16, 24, 32, 40, 48]:
                 for n_rbf in [16, 24, 32, 40, 48]:
+    """
+    for r_cut in [4.0]:
+        for n_interactions in [5, 6]:
+            for n_atom_basis in [16]:
+                for n_rbf in [16]:
                     # generate grid search of values marked by `ValueIter`
                     all_update_config = get_update_config(
                         n_atom_basis=n_atom_basis,
