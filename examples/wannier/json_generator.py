@@ -301,7 +301,7 @@ def read_data(path):
                 #print(z_mol[:6],result[:6,:],lst_wan[:2,:])
 
                 energy=0.0
-                val_list = [pos_mol, z_mol, cell, np.array([str(pbc), str(pbc), str(pbc)]), energy,result]
+                val_list = [pos_mol, z_mol, cell, np.array([pbc, pbc, pbc]), energy,result]
 
                 for i in range (len(keys_list)):
                     dict_out[keys_list[i]][str(dir)] = val_list[i]
