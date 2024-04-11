@@ -1,13 +1,12 @@
+import json
 import os
 from typing import Tuple, Union
-import pandas as pd
 
 import numpy as np
+import pandas as pd
 from ase import Atoms
 from ase.neighborlist import primitive_neighbor_list
 
-
-import json
 
 def json_to_dict(json_file_path):
     """
@@ -22,7 +21,8 @@ def json_to_dict(json_file_path):
         loaded_dict = json.load(json_file)
     return loaded_dict
 
-def dict_to_json(dict_name,json_name):
+
+def dict_to_json(dict_name, json_name):
     """
     Method to write dictionary to a json file
     Arguments:
@@ -31,8 +31,9 @@ def dict_to_json(dict_name,json_name):
     Returns:
         none
     """
-    with open(json_name, 'w') as json_file:
+    with open(json_name, "w") as json_file:
         json.dump(dict_name, json_file)
+
 
 def data_preparation(z_list, pos_list, wc_list1, z_wannier: int = 8):
     """
@@ -229,7 +230,7 @@ class Process_xyz_remsing:
             self_interaction=False,
             periodic_self_interaction=True,
         )
-        wc_neigh=num_neigh[: len(oxy_positions)]
+        wc_neigh = num_neigh[: len(oxy_positions)]
         lst_wan = []
         sum1 = 0
         i: int
@@ -246,7 +247,6 @@ class Process_xyz_remsing:
         lst_wan = np.array(lst_wan)
 
         return lst_wan, oxy_positions, wc_neigh
-
 
     def write_xyz(self, file_out="outfile_ret.xyz", format_out="xyz"):
         import ase.io as asi
@@ -272,13 +272,21 @@ def read_data(path):
 
     Returns:
     """
-    na_list=[]
-    neigh_mismath_list=[]
-    dict_out={}
-    dict_out['coords']={}
-    keys_list=['coords','atomic_number', 'cell', 'pbc', 'energy', 'forces']
+    na_list = []
+    neigh_mismath_list = []
+    dict_out = {}
+    dict_out["coords"] = {}
+    keys_list = [
+        "coords",
+        "atomic_number",
+        "cell",
+        "pbc",
+        "energy",
+        "forces",
+        "atomic_selector",
+    ]
     for entries in keys_list:
-        dict_out[str(entries)]={}
+        dict_out[str(entries)] = {}
     print(dict_out.keys())
     lst_dir = [x for x in os.listdir(path) if "." not in x]
     for dir in lst_dir:
@@ -288,22 +296,29 @@ def read_data(path):
             file_inp = file_path1 + "/water.inp"
             pxr = Process_xyz_remsing(file_str=file_str, file_inp=file_inp)
             struct_obj, cell = pxr.get_structure()
-            pbc=pxr.pbc
+            pbc = pxr.pbc
             lst_wan, oxy_positions, wc_neigh = pxr.wannier_centers()
-            if list(np.unique(wc_neigh))==[4]:
+            if list(np.unique(wc_neigh)) == [4]:
                 z_mol, pos_mol = pxr.atom_number_positions()
-                oxygen_mask = (z_mol == 8)
-                print('mask_shape',oxygen_mask.shape)
+                oxygen_mask = z_mol == 8
+                # print("mask_shape", oxygen_mask.shape)
                 result = np.zeros_like(pos_mol)
-
-                print('lst_wan_shape',lst_wan.shape)
+                # print("lst_wan_shape", lst_wan.shape)
                 result[oxygen_mask] = lst_wan[z_mol[oxygen_mask] == 8]
-                #print(z_mol[:6],result[:6,:],lst_wan[:2,:])
+                # print(z_mol[:6],result[:6,:],lst_wan[:2,:])
 
-                energy=0.0
-                val_list = [pos_mol, z_mol, cell, np.array([pbc, pbc, pbc]), energy,result]
+                energy = 0.0
+                val_list = [
+                    pos_mol,
+                    z_mol,
+                    cell,
+                    np.array([pbc, pbc, pbc]),
+                    energy,
+                    result,
+                    oxygen_mask,
+                ]
 
-                for i in range (len(keys_list)):
+                for i in range(len(keys_list)):
                     dict_out[keys_list[i]][str(dir)] = val_list[i]
             else:
                 neigh_mismath_list.append(dir)
@@ -316,9 +331,11 @@ def read_data(path):
 
 
 if __name__ == "__main__":
-    path = "/Users/sadhik22/Downloads/train_test_configs_orig/D0/"
+    # path = "/Users/sadhik22/Downloads/train_test_configs_orig/D0/"
+    path = "/Users/mjwen.admin/Desktop/Wannier/RS_et_al_tr_tt_configs/D0/"
     dict_out = read_data(path)
-    df=pd.DataFrame(dict_out)
-    df.to_json('wannier.json')
 
+    print("number of data points", len(dict_out["cell"]))
 
+    df = pd.DataFrame(dict_out)
+    df.to_json("wannier.json")
