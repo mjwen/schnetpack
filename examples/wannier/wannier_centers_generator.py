@@ -286,13 +286,16 @@ def read_data(path):
 
 
 if __name__ == "__main__":
-    path = "/project/wen/sadhik22/model_training/wannier_centers/dataset/train_test_configs_orig/D0/"
+    # path = "/project/wen/sadhik22/model_training/wannier_centers/dataset/train_test_configs_orig/D0/"
+    path = "/Users/mjwen.admin/Desktop/Wannier/RS_et_al_tr_tt_configs/D0/"
+
     z_list, pos_list, wc_list = read_data(path)
 
     atoms_list, property_list = data_preparation(z_list, pos_list, wc_list)
 
     # create database
-    processed = "/project/wen/sadhik22/model_training/wannier_centers/schnet_processed/"
+    # processed = "/project/wen/sadhik22/model_training/wannier_centers/schnet_processed/"
+    processed = "/Users/mjwen.admin/Downloads/"
     db_path = processed + "wannier_dataset.db"
     split_path = processed + "split.npz"
 
