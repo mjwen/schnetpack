@@ -150,8 +150,8 @@ def main(config: dict):
 
     config = update_model_configs(config)
     model = create_model(
-        model_hparams=config.pop("model"),
-        task_hparams=config.pop("atomistic_task"),
+        model_hparams=config["model"],
+        task_hparams=config["atomistic_task"],
         other_hparams=config,
     )
 

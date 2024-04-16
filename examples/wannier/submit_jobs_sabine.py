@@ -93,9 +93,9 @@ def submit_a_job(
         ntasks_per_node=1,
         cpus_per_task=2,
         gpus=1,
-        time="2-00:00:00",
+        time="4-00:00:00",
         mem="40GB",
-        conda_env="/project/wen/sadhik22/envs/schnet",
+        conda_env="schnet",
         end_generic=[
             f"python {python_script_name}",
             "rm -r processed",  # remove the processed file to save disk space
@@ -119,7 +119,7 @@ def get_update_config(
     r_cut=5.0,
     n_interactions=3,
     n_rbf=20,
-    max_epochs=1500,
+    max_epochs=3000,
     wandb_project_name="wannier_center_predictions",
 ):
 
@@ -127,13 +127,13 @@ def get_update_config(
         #
         # datamodule
         "datamodule": {
-            "cutoff": r_cut,
+            "cutoff": ValueIter([4.0, 5.0, 6.0]),
         },
         # model
         "model": {
-            "n_atom_basis": n_atom_basis,
-            "n_interactions": n_interactions,
-            "n_rbf": n_rbf,
+            "n_atom_basis": ValueIter([8, 16, 32]),
+            "n_interactions": ValueIter([2, 4, 6]),
+            "n_rbf": ValueIter([8, 16, 32]),
         },
         #
         # trainer
@@ -141,6 +141,7 @@ def get_update_config(
         "trainer": {
             "max_epochs": max_epochs,
             "accelerator": "gpu",
+            "gradient_clip_val":100,
             # "trainer.gradient_clip_val": [1.0, 0.0],  # 0 means no clop
             #
             # logger
@@ -184,6 +185,12 @@ def get_update_config(
                         "verbose": True,
                     },
                 },
+                {
+                    "class_path": "schnetpack.train.ExponentialMovingAverage",
+                    "init_args": {
+                        "decay": 0.995,
+                    },
+                },
             ],
         },
         #
@@ -191,7 +198,7 @@ def get_update_config(
         #
         "optimizer": {
             "init_args": {
-                "lr": 0.01,
+                "lr": 0.05,
                 "weight_decay": 0.0,
             }
         },
@@ -215,40 +222,33 @@ def get_update_config(
 
 
 if __name__ == "__main__":
-    PROJECT_NAME = "wannier_center_predictions"
+    PROJECT_NAME = "wannier_center_predictions_041324_lr_0.05_gc_100"
 
     BASE_CONFIG = "/home/sadhik22/Packages/schnetpack/examples/wannier/configs/config_wannier.yaml"
 
-    JOB_DIR = "job_dir-tmp"
+    JOB_DIR = "/project/wen/sadhik22/schnet_training/wannier_centers/schnet_training_summary/results_041224_onwards/041324_lr_0.05_gc_100"
+    j = 1
     if not os.path.exists(JOB_DIR):
         os.mkdir(JOB_DIR)
 
-    launch_db = LaunchDB(db_path=f"./{JOB_DIR}/minilaunch_db.yaml", new_db=True)
+    launch_db = LaunchDB(db_path=f"/{JOB_DIR}/minilaunch_db.yaml", new_db=True)
 
     # for trainset_size in [10, 100, 1000, 2500]:
     # for trainset_size in [10]:
-    for r_cut in [4.0, 5.0, 6.0]:
-        for n_interactions in [5, 6, 7, 8, 9, 10]:
-            for n_atom_basis in [16, 24, 32, 40, 48]:
-                for n_rbf in [16, 24, 32, 40, 48]:
                     # generate grid search of values marked by `ValueIter`
-                    all_update_config = get_update_config(
-                        n_atom_basis=n_atom_basis,
-                        max_epochs=1500,
-                        r_cut=r_cut,
-                        n_interactions=n_interactions,
-                        n_rbf=n_rbf,
-                        wandb_project_name=PROJECT_NAME
-                        + f"_rcut_{r_cut}_nlay_{n_interactions}_atm_bas_{n_atom_basis}_n_gaus_{n_rbf}",
+    all_update_config = get_update_config(
+                        max_epochs=5000,
+                        wandb_project_name=PROJECT_NAME,
                     )
-                    config = all_update_config[-1]
-                    submit_a_job(
-                        jobname=f"rcut_{r_cut}_nlay_{n_interactions}_atm_bas_{n_atom_basis}_n_gaus_{n_rbf}",
-                        submit_dir=f"{JOB_DIR}/rcut_{r_cut}_nlay_{n_interactions}_atm_bas_{n_atom_basis}_n_gaus_{n_rbf}",
-                        python_script_name="train_wannier.py",
-                        default_config=BASE_CONFIG,
-                        update_config=config,
-                        files_to_copy=["train_wannier.py"],
-                        launch_db=launch_db,
-                        default_config_keys_to_pop=None,
-                    )
+    #config = all_update_config[-1]
+    for i, config in enumerate(all_update_config):
+        submit_a_job(
+            jobname=f"job_{j}",
+            submit_dir=f"{JOB_DIR}/job_{j}",
+            python_script_name="train_wannier.py",
+            default_config=BASE_CONFIG,
+            update_config=config,
+            files_to_copy=["train_wannier.py"],
+            launch_db=launch_db,
+            default_config_keys_to_pop=None,)
+        j += 1
