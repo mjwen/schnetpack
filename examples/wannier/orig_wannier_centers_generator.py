@@ -7,7 +7,7 @@ from ase import Atoms
 from ase.neighborlist import primitive_neighbor_list
 from schnetpack.data import ASEAtomsData, AtomsDataModule
 
-def data_preparation(z_list, pos_list, wc_list1, ene_list, for_list, z_wannier: int = 8):
+def data_preparation(z_list, pos_list, wc_list1, z_wannier: int = 8):
     """
     A method to prepare data for feeding to SchNet that stacks atomic positions and wannier centers across
     different configurations
@@ -20,14 +20,12 @@ def data_preparation(z_list, pos_list, wc_list1, ene_list, for_list, z_wannier: 
 
     atoms_list = []
     property_list = []
-    for z_mol, positions, wanniers, energy, forces in zip(z_list, pos_list, wc_list1, ene_list, for_list):
+    for z_mol, positions, wanniers in zip(z_list, pos_list, wc_list1):
         ats = Atoms(positions=positions, numbers=z_mol)
 
         properties = {
             "wan": wanniers,
             "wc_selector": np.array([1 if z == z_wannier else 0 for z in z_mol]),
-            "energy": energy,
-            "forces": forces,
         }
         property_list.append(properties)
         atoms_list.append(ats)
@@ -39,57 +37,37 @@ class Process_xyz_remsing:
     """
     Arguments:
         file_str: str = path of structure file (eg.position.xyz), POSCAR, CONTCAR
-        file_init: str = path of the input control file with extension inp (for CP2K : "eg. init.xyz")
-        file_force: str = path of the input control file with extension inp (force  : "W64-bulk-W64-forces-1_0.xyz")
-        self.phrase: str = phrase that we want to search in the file
+        file_inp: str = path of the input control file with extension inp (for CP2K : "eg. water.inp")
         num_wan: int = number of wannier centers per formula unit. eg. for H20, there are 4 WC around
                         oxygen atom (most electronegative), default = 4
         pbe: bool = True/False, True indicates consideration of periodic boundary condition : default: True
         format_in: str = input file type of first argument (file_str): default = 'xyz'
     """
 
-    def __init__(self, file_str,file_init, file_force,num_wan=4, pbc=True,phrase='TotEnergy', format_in="xyz"):
+    def __init__(self, file_str, file_inp, num_wan=4, pbc=True, format_in="xyz"):
         self.file_str = file_str
-        self.file_init = file_init
-        self.file_force = file_force
+        self.file_inp = file_inp
         self.num_wan = num_wan
-        self.phrase = phrase
         self.pbc = pbc
         self.format_in = format_in
         # print(lattice_vectors)
 
-    def get_line(self):
+    def get_line(self, phrase="ABC"):
         """
         searches for a line containing the phrase in the file and returns first line containing it.
+        arguments:
+        phrase: str = search phrase on file (file_inp): default='ABC'
         """
-        with open(self.file_init) as f:
+        with open(self.file_inp) as f:
             for i, line in enumerate(f):
-                if self.phrase in line:
+                if phrase in line:
                     return line
 
-    def get_energy_cell_lattice(self):
-        """
-        writes the total energy (eV) and cell vectors (A)  
-        """    
-        a1=self.get_line()
-        a2=list(filter(lambda x: x.strip(), a1.split("=")))
-        hartree_to_ev=27.211396
-        bohr_to_angs=0.529177208
-        energy_hartree=float(a2[1].split(" ")[0])
-        lat=a2[5].split('"')[1]
-        cell_bohr = np.array([float(x) for x in lat.split()]).reshape(3,3)
-        energy_ev=energy_hartree*hartree_to_ev
-        cell_angs=cell_bohr*bohr_to_angs
-        return energy_ev,cell_angs
-
-    def get_forces(self):
-        """
-        writes total forces (eV/A)
-        """
-        max_rows=int(next(open(self.file_init, 'r')))
-        au_to_ev_per_ang=51.42208619083232
-        forces_array=np.loadtxt(self.file_force,usecols=(3,4,5),skiprows=4,max_rows=max_rows)
-        return forces_array*au_to_ev_per_ang
+    def get_lattice_vectors(self):
+        cell = np.multiply(
+            np.eye(3), np.array(self.get_line().split()[-3:], dtype=float).reshape(1, 3)
+        )
+        return cell
 
     def get_neigh(
         self,
@@ -187,7 +165,7 @@ class Process_xyz_remsing:
     def get_structure(self):
         import ase.io as asi
 
-        energy,cell = self.get_energy_cell_lattice()
+        cell = self.get_lattice_vectors()
         struct_obj = asi.read(filename=self.file_str, format=self.format_in)
         struct_obj.set_pbc(self.pbc)
         struct_obj.set_cell(cell)
@@ -271,8 +249,6 @@ def read_data(path):
     pos_list = []
     wc_list = []
     na_list = []
-    energy_list=[]
-    force_list=[]
     neigh_mismath_list = []
 
     lst_dir = [x for x in os.listdir(path) if "." not in x]
@@ -280,20 +256,16 @@ def read_data(path):
         file_path1 = path + str(dir)
         if "W64-bulk-HOMO_centers_s1-1_0.xyz" in os.listdir(file_path1):
             file_str = file_path1 + "/W64-bulk-HOMO_centers_s1-1_0.xyz"
-            file_init = file_path1 + "/init.xyz"
-            file_force = file_path1 +"/W64-bulk-W64-forces-1_0.xyz"
-            pxr = Process_xyz_remsing(file_str = file_str, file_init = file_init, file_force = file_force)
+            file_inp = file_path1 + "/water.inp"
+            pxr = Process_xyz_remsing(file_str=file_str, file_inp=file_inp)
             # struct_obj, cell = pxr.get_structure()
             lst_wan, oxy_positions, wc_neigh = pxr.wannier_centers()
             if list(np.unique(wc_neigh)) == [4]:
                 z_mol, pos_mol = pxr.atom_number_positions()
-                energy, cell = pxr.get_energy_cell_lattice()
-                force=pxr.get_forces()
+
                 z_list.append(z_mol)
                 pos_list.append(pos_mol)
                 wc_list.append(lst_wan)
-                energy_list.append([energy])
-                force_list.append(force)
             else:
                 neigh_mismath_list.append(dir)
         else:
@@ -304,28 +276,25 @@ def read_data(path):
     z_list = np.asarray(z_list)
     pos_list = np.asarray(pos_list)
     wc_list = np.asarray(wc_list)
-    ene_list = np.asarray(energy_list)
-    for_list = np.asarray(force_list)    
 
     print("z_list.shape", z_list.shape)
     print("pos_list.shape", pos_list.shape)
     print("wc_list.shape", wc_list.shape)
-    print("ene_list.shape", ene_list.shape)
-    print("for_list.shape", for_list.shape)
 
-    return z_list, pos_list, wc_list, ene_list, for_list
+    return z_list, pos_list, wc_list
 
 
 if __name__ == "__main__":
     path = "/project/wen/sadhik22/schnet_training/wannier_centers/dataset/train_test_configs_orig/D0/"
     #path = "/Users/mjwen.admin/Desktop/Wannier/RS_et_al_tr_tt_configs/D0/"
 
-    z_list, pos_list, wc_list, ene_list, for_list = read_data(path)
-    atoms_list, property_list = data_preparation(z_list, pos_list, wc_list, ene_list, for_list)
+    z_list, pos_list, wc_list = read_data(path)
+
+    atoms_list, property_list = data_preparation(z_list, pos_list, wc_list)
 
     # create database
     processed = "/project/wen/sadhik22/schnet_training/wannier_centers/schnet_processed/"
-
+    #processed = "/Users/mjwen.admin/Downloads/"
     db_path = processed + "wannier_dataset.db"
     split_path = processed + "split.npz"
 

@@ -136,6 +136,13 @@ def get_update_config(
             "n_rbf": ValueIter([8, 16, 32]),
         },
         #
+        #
+        #atomistic_task
+        "atomistic_task": {
+            "optimizer_args": {
+                "lr": 0.01,
+            }
+        },
         # trainer
         #
         "trainer": {
@@ -198,7 +205,7 @@ def get_update_config(
         #
         "optimizer": {
             "init_args": {
-                "lr": 0.05,
+                "lr": 0.01,
                 "weight_decay": 0.0,
             }
         },
@@ -222,11 +229,11 @@ def get_update_config(
 
 
 if __name__ == "__main__":
-    PROJECT_NAME = "wannier_center_predictions_041324_lr_0.05_gc_100"
+    PROJECT_NAME = "wannier_center_predictions_041624_lr_0.01_gc_100"
 
     BASE_CONFIG = "/home/sadhik22/Packages/schnetpack/examples/wannier/configs/config_wannier.yaml"
 
-    JOB_DIR = "/project/wen/sadhik22/schnet_training/wannier_centers/schnet_training_summary/results_041224_onwards/041324_lr_0.05_gc_100"
+    JOB_DIR = "/project/wen/sadhik22/schnet_training/wannier_centers/schnet_training_summary/results_041224_onwards/041624_lr_0.01_gc_100"
     j = 1
     if not os.path.exists(JOB_DIR):
         os.mkdir(JOB_DIR)
