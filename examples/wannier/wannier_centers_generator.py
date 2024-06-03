@@ -285,10 +285,12 @@ def read_data(path):
             pxr = Process_xyz_remsing(file_str = file_str, file_init = file_init, file_force = file_force)
             # struct_obj, cell = pxr.get_structure()
             lst_wan, oxy_positions, wc_neigh = pxr.wannier_centers()
+            wan_pos = lst_wan + oxy_positions
             if list(np.unique(wc_neigh)) == [4]:
                 z_mol, pos_mol = pxr.atom_number_positions()
                 energy, cell = pxr.get_energy_cell_lattice()
                 force=pxr.get_forces()
+                #fin_z_mol = np.concatenate((z_mol,np.full((),)))
                 z_list.append(z_mol)
                 pos_list.append(pos_mol)
                 wc_list.append(lst_wan)
