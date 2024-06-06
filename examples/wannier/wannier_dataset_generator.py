@@ -35,9 +35,9 @@ def dict_to_json(dict_name, json_name):
         json.dump(dict_name, json_file)
 
 
-
-
-def data_preparation(z_list, pos_list, wc_list1, ene_list, for_list, z_wannier: int = 8):
+def data_preparation(
+    z_list, pos_list, wc_list1, ene_list, for_list, z_wannier: int = 8
+):
     """
     A method to prepare data for feeding to SchNet that stacks atomic positions and wannier centers across
     different configurations
@@ -50,7 +50,9 @@ def data_preparation(z_list, pos_list, wc_list1, ene_list, for_list, z_wannier: 
 
     atoms_list = []
     property_list = []
-    for z_mol, positions, wanniers, energy, forces in zip(z_list, pos_list, wc_list1, ene_list, for_list):
+    for z_mol, positions, wanniers, energy, forces in zip(
+        z_list, pos_list, wc_list1, ene_list, for_list
+    ):
         ats = Atoms(positions=positions, numbers=z_mol)
 
         properties = {
@@ -78,7 +80,16 @@ class Process_xyz_remsing:
         format_in: str = input file type of first argument (file_str): default = 'xyz'
     """
 
-    def __init__(self, file_str,file_init, file_force,num_wan=4, pbc=True,phrase='TotEnergy', format_in="xyz"):
+    def __init__(
+        self,
+        file_str,
+        file_init,
+        file_force,
+        num_wan=4,
+        pbc=True,
+        phrase="TotEnergy",
+        format_in="xyz",
+    ):
         self.file_str = file_str
         self.file_init = file_init
         self.file_force = file_force
@@ -99,27 +110,29 @@ class Process_xyz_remsing:
 
     def get_energy_cell_lattice(self):
         """
-        writes the total energy (eV) and cell vectors (A)  
-        """    
-        a1=self.get_line()
-        a2=list(filter(lambda x: x.strip(), a1.split("=")))
-        hartree_to_ev=27.211396
-        bohr_to_angs=0.529177208
-        energy_hartree=float(a2[1].split(" ")[0])
-        lat=a2[5].split('"')[1]
-        cell_bohr = np.array([float(x) for x in lat.split()]).reshape(3,3)
-        energy_ev=energy_hartree*hartree_to_ev
-        cell_angs=cell_bohr*bohr_to_angs
-        return energy_ev,cell_angs
+        writes the total energy (eV) and cell vectors (A)
+        """
+        a1 = self.get_line()
+        a2 = list(filter(lambda x: x.strip(), a1.split("=")))
+        hartree_to_ev = 27.211396
+        bohr_to_angs = 0.529177208
+        energy_hartree = float(a2[1].split(" ")[0])
+        lat = a2[5].split('"')[1]
+        cell_bohr = np.array([float(x) for x in lat.split()]).reshape(3, 3)
+        energy_ev = energy_hartree * hartree_to_ev
+        cell_angs = cell_bohr * bohr_to_angs
+        return energy_ev, cell_angs
 
     def get_forces(self):
         """
         writes total forces (eV/A)
         """
-        max_rows=int(next(open(self.file_init, 'r')))
-        au_to_ev_per_ang=51.42208619083232
-        forces_array=np.loadtxt(self.file_force,usecols=(3,4,5),skiprows=4,max_rows=max_rows)
-        return forces_array*au_to_ev_per_ang
+        max_rows = int(next(open(self.file_init, "r")))
+        au_to_ev_per_ang = 51.42208619083232
+        forces_array = np.loadtxt(
+            self.file_force, usecols=(3, 4, 5), skiprows=4, max_rows=max_rows
+        )
+        return forces_array * au_to_ev_per_ang
 
     def get_neigh(
         self,
@@ -217,7 +230,7 @@ class Process_xyz_remsing:
     def get_structure(self):
         import ase.io as asi
 
-        energy,cell = self.get_energy_cell_lattice()
+        energy, cell = self.get_energy_cell_lattice()
         struct_obj = asi.read(filename=self.file_str, format=self.format_in)
         struct_obj.set_pbc(self.pbc)
         struct_obj.set_cell(cell)
@@ -288,7 +301,6 @@ class Process_xyz_remsing:
         asi.write(file_out, images=new_str, format=format_out)
 
 
-
 def read_data(path):
     """
 
@@ -308,32 +320,42 @@ def read_data(path):
         "pbc",
         "energy",
         "forces",
+        "charge",
         "wannier_center",
+        "charge_wannier_center",
         "atomic_selector",
     ]
     for entries in keys_list:
         dict_out[str(entries)] = {}
     print(dict_out.keys())
+
     lst_dir = [x for x in os.listdir(path) if "." not in x]
     for dir in lst_dir:
         file_path1 = path + str(dir)
         if "W64-bulk-HOMO_centers_s1-1_0.xyz" in os.listdir(file_path1):
             file_str = file_path1 + "/W64-bulk-HOMO_centers_s1-1_0.xyz"
             file_init = file_path1 + "/init.xyz"
-            file_force = file_path1 +"/W64-bulk-W64-forces-1_0.xyz"
-            pxr = Process_xyz_remsing(file_str = file_str, file_init = file_init, file_force = file_force)
+            file_force = file_path1 + "/W64-bulk-W64-forces-1_0.xyz"
+            pxr = Process_xyz_remsing(
+                file_str=file_str, file_init=file_init, file_force=file_force
+            )
             pbc = pxr.pbc
             lst_wan, oxy_positions, wc_neigh = pxr.wannier_centers()
             if list(np.unique(wc_neigh)) == [4]:
                 z_mol, pos_mol = pxr.atom_number_positions()
                 energy, cell = pxr.get_energy_cell_lattice()
-                forces=pxr.get_forces()
+                forces = pxr.get_forces()
                 oxygen_mask = z_mol == 8
+
                 # print("mask_shape", oxygen_mask.shape)
-                result = np.zeros_like(pos_mol)
+                # result = np.zeros_like(pos_mol)
                 # print("lst_wan_shape", lst_wan.shape)
-                result[oxygen_mask] = lst_wan[z_mol[oxygen_mask] == 8]
+                # result[oxygen_mask] = lst_wan[z_mol[oxygen_mask] == 8]
                 # print(z_mol[:6],result[:6,:],lst_wan[:2,:])
+
+                # charge of atoms: 6 for oxygen, 1 for hydrogen
+                charge = [6 if z == 8 else 1 for z in z_mol]
+                charge_wc = [-8] * len(lst_wan)
 
                 val_list = [
                     pos_mol,
@@ -342,7 +364,9 @@ def read_data(path):
                     np.array([pbc, pbc, pbc]),
                     energy,
                     forces,
-                    result,
+                    charge,
+                    lst_wan,
+                    charge_wc,
                     oxygen_mask,
                 ]
 
@@ -360,7 +384,8 @@ def read_data(path):
 
 if __name__ == "__main__":
     # path = "/Users/sadhik22/Downloads/train_test_configs_orig/D0/"
-    path = "/project/wen/sadhik22/schnet_training/wannier_centers/dataset/train_test_configs_orig/D0/"
+    # path = "/project/wen/sadhik22/schnet_training/wannier_centers/dataset/train_test_configs_orig/D0/"
+    path = "/Users/mjwen.admin/Packages/camp_analysis/dataset/wannier/Wannier/RS_et_al_tr_tt_configs/D0/"
     dict_out = read_data(path)
 
     print("number of data points", len(dict_out["cell"]))
